@@ -34,8 +34,8 @@ public class BleService extends Service {
             "com.netlhx.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED";
     public final static String ACTION_DATA_AVAILABLE =
             "com.netlhx.bluetooth.le.ACTION_DATA_AVAILABLE";
-    public final static String EXTRA_DATA =
-            "com.netlhx.bluetooth.le.EXTRA_DATA";
+    public final static String BLE_EXTRA_DATA =
+            "com.netlhx.bluetooth.le.BLE_EXTRA_DATA";
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
