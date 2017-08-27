@@ -39,6 +39,7 @@ public class BleService extends Service {
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
+    private static final String BLE_CHARACTERISTIC_UUID = "BLE_CHARACTERISTIC_UUID";
     //LocalBinder class
     private final IBinder mBinder = new LocalBinder();
     BluetoothLeScannerCompat mScanner = BluetoothLeScannerCompat.getScanner();
@@ -48,6 +49,8 @@ public class BleService extends Service {
     private String mBluetoothDeviceAddress;
     private BluetoothGatt mBluetoothGatt;
     private int mConnectionState = STATE_DISCONNECTED;
+
+    //TODO: add UUID definition here for specific Services or Characteristic
 
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
@@ -139,7 +142,8 @@ public class BleService extends Service {
 
     private void broadcastUpdate(final String action, final BluetoothGattCharacteristic characteristic) {
         Intent intent = new Intent(action);
-
+        String characteristicUuid = characteristic.getUuid().toString();
+        intent.putExtra(BLE_CHARACTERISTIC_UUID, characteristicUuid);
         sendBroadcast(intent);
     }
 
@@ -153,6 +157,9 @@ public class BleService extends Service {
 
     @Override
     public boolean onUnbind(Intent intent) {
+        // After using a given device, you should make sure that BluetoothGatt.close() is called
+        // such that resources are cleaned up properly.  In this particular example, close() is
+        // invoked when the UI is disconnected from the Service.
         if(mScanning) {
             stopScan();
         }
