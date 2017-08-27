@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Hello BLE</string>
+    <string name="enable_location_service_title">Enable Location Service</string>
+    <string name="enable_location_service_message">For best performance, you should enabl Location Service, either network or gps is ok.</string>
+    <string name="enable_bt">bluetooth should be enabled</string>
+    <string name="enable_bt_permission">this app need bluetooth permission</string>
+</resources>
