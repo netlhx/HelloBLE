@@ -8,16 +8,19 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -27,28 +30,61 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_PERMISSION_LOCATION = 111;
     private static final int REQUEST_ENABLE_BT = 222;
     private static final int REQUEST_LOCATION_SERVICE = 333;
-    private boolean mBleEnvReady = false;
+    private static final String TAG = MainActivity.class.getSimpleName();
+    private boolean mBleEnvReady = true;
 
     private Button mStartButton;
+    private Handler mHandler = new Handler();
 
     private BleService mBleService;
 
     private ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
+
+            //got BleService Instance
             mBleService = ((BleService.LocalBinder) service).getService();
+            Log.d(TAG, "onServiceConnected: ");
+            checkBleStatus();
+            checkBlePermission();
+            //checkLocationService();
+            if(!mBleService.initialize()) {
+                Log.d(TAG, "onServiceConnected: " + "failed");
+            }
+
+           
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
             mBleService = null;
-
+            Log.d(TAG, "onServiceDisconnected: ");
         }
     };
 
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            switch (action) {
+                case BleService.ACTION_DEVICE_FOUND:
+                    break;
+
+                case BleService.ACTION_GATT_CONNECTED:
+                    break;
+
+                case BleService.ACTION_GATT_DISCONNECTED:
+                    break;
+
+                case BleService.ACTION_GATT_SERVICES_DISCOVERED:
+                    break;
+
+                case BleService.ACTION_DATA_AVAILABLE:
+                    break;
+
+                default:
+                    break;
+            }
 
         }
     };
@@ -63,14 +99,22 @@ public class MainActivity extends AppCompatActivity {
         mStartButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                checkBleStatus();
-                checkLocationService();
-                checkBlePermission();
+                if(mBleService != null) {
+                    mHandler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            mBleService.stopScan();
+                        }
+                    }, 3000);
+
+                    mBleService.startScan();
+                }
             }
         });
 
         Intent intent = new Intent(this, BleService.class);
         bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
+
     }
 
     private void checkBlePermission() {
@@ -100,7 +144,6 @@ public class MainActivity extends AppCompatActivity {
         LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
         if(locationManager.getProviders(true).size() > 0) {
-            //nothing to do
             mBleEnvReady = true;
 
         } else {
@@ -130,7 +173,6 @@ public class MainActivity extends AppCompatActivity {
 
             } else {
                 Toast.makeText(this, R.string.enable_bt, Toast.LENGTH_SHORT).show();
-                mBleEnvReady = false;
             }
         }
 
@@ -142,15 +184,18 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        unbindService(mServiceConnection);
+        unregisterReceiver(mBroadcastReceiver);
+
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        registerReceiver(mBroadcastReceiver, makeGattUpdateIntentFilter());
 
-        Intent intent = new Intent(this, BleService.class);
-        bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
+        if(mBleService != null) {
+            mBleService.connect(null);
+        }
     }
 
     @Override
@@ -160,11 +205,28 @@ public class MainActivity extends AppCompatActivity {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     Toast.makeText(this, R.string.enable_bt_permission, Toast.LENGTH_SHORT).show();
-                    mBleEnvReady = false;
                 }
             } else {
                 mBleEnvReady = true;
             }
         }
+    }
+
+    private static IntentFilter makeGattUpdateIntentFilter() {
+        final IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(BleService.ACTION_GATT_CONNECTED);
+        intentFilter.addAction(BleService.ACTION_GATT_DISCONNECTED);
+        intentFilter.addAction(BleService.ACTION_GATT_SERVICES_DISCOVERED);
+        intentFilter.addAction(BleService.ACTION_DATA_AVAILABLE);
+        return intentFilter;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unbindService(mServiceConnection);
+        mBleService = null;
+        super.onPause();
+
     }
 }

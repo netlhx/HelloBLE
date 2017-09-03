@@ -4,4 +4,5 @@
     <string name="enable_location_service_message">For best performance, you should enabl Location Service, either network or gps is ok.</string>
     <string name="enable_bt">bluetooth should be enabled</string>
     <string name="enable_bt_permission">this app need bluetooth permission</string>
+    <string name="initialize_status">Ble initialize failed</string>
 </resources>

@@ -11,6 +11,7 @@ import android.bluetooth.BluetoothProfile;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,9 @@ import no.nordicsemi.android.support.v18.scanner.ScanSettings;
 
 public class BleService extends Service {
     private final static String TAG = BleService.class.getSimpleName();
+
+    //TODO: change your BLE_DEVICE_NAME here
+    private static final String BLE_DEVICE_NAME = "DEVICE_NAME";
 
     public final static String ACTION_DEVICE_FOUND =
             "com.netlhx.bluetooth.le.ACTION_DEVICE_FOUND";
@@ -40,6 +44,7 @@ public class BleService extends Service {
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
     private static final String BLE_CHARACTERISTIC_UUID = "BLE_CHARACTERISTIC_UUID";
+
     //LocalBinder class
     private final IBinder mBinder = new LocalBinder();
     BluetoothLeScannerCompat mScanner = BluetoothLeScannerCompat.getScanner();
@@ -47,6 +52,7 @@ public class BleService extends Service {
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
     private String mBluetoothDeviceAddress;
+    private String mBluetoothDeviceName;
     private BluetoothGatt mBluetoothGatt;
     private int mConnectionState = STATE_DISCONNECTED;
 
@@ -81,6 +87,7 @@ public class BleService extends Service {
             super.onServicesDiscovered(gatt, status);
             switch (status) {
                 case BluetoothGatt.GATT_SUCCESS:
+                    Log.d(TAG, "onServicesDiscovered: ");
                     broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
                     break;
 
@@ -118,6 +125,10 @@ public class BleService extends Service {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
             super.onScanResult(callbackType, result);
+            Log.d(TAG, "onScanResult: " + result.getDevice().toString());
+            mBluetoothDeviceName = result.getDevice().getName();
+            mBluetoothDeviceAddress = result.getDevice().getAddress();
+
             broadcastUpdate(ACTION_DEVICE_FOUND);
         }
 
@@ -297,6 +308,12 @@ public class BleService extends Service {
 
             List<ScanFilter> filters = new ArrayList<>();
 
+            ScanFilter scanFilter = new ScanFilter.Builder()
+                    .setDeviceName(BLE_DEVICE_NAME)
+                    .build();
+
+            filters.add(scanFilter);
+
             mScanner.startScan(filters, settings, mScanCallback);
 
         }
@@ -314,5 +331,13 @@ public class BleService extends Service {
         public BleService getService() {
             return BleService.this;
         }
+    }
+
+    public String getBluetoothDeviceAddress() {
+        return mBluetoothDeviceAddress;
+    }
+
+    public String getBluetoothDeviceName() {
+        return mBluetoothDeviceName;
     }
 }
